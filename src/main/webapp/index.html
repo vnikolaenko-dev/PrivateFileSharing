@@ -1,0 +1,543 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>File Catalog</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        .hidden { display: none; }
+    </style>
+</head>
+<body class="bg-gray-100">
+<!-- Навигационное меню -->
+<nav id="nav-menu" class="bg-blue-600 text-white p-4 hidden">
+    <ul class="flex space-x-4">
+        <li><button id="nav-files" class="hover:underline">Файлы</button></li>
+        <li id="nav-users-li" class="hidden"><button id="nav-users" class="hover:underline">Пользователи</button></li>
+    </ul>
+</nav>
+
+<!-- Страница авторизации -->
+<div id="login-page" class="min-h-screen flex items-center justify-center">
+    <div class="bg-white p-8 rounded shadow-md w-full max-w-md">
+        <h2 class="text-2xl font-bold mb-6 text-center">Вход</h2>
+        <p id="login-error" class="text-red-500 mb-4 hidden"></p>
+        <div class="mb-4">
+            <label class="block text-gray-700">Логин</label>
+            <input id="login-username" type="text" class="w-full p-2 border rounded" required>
+        </div>
+        <div class="mb-6">
+            <label class="block text-gray-700">Пароль</label>
+            <input id="login-password" type="password" class="w-full p-2 border rounded" required>
+        </div>
+        <button id="login-button" class="w-full bg-blue-500 text-white p-2 rounded hover:bg-blue-600">Войти</button>
+    </div>
+</div>
+
+<!-- Страница каталога файлов -->
+<div id="catalog-page" class="container mx-auto p-4 hidden">
+    <h2 class="text-2xl font-bold mb-4">Каталог файлов</h2>
+    <p id="catalog-error" class="text-red-500 mb-4 hidden"></p>
+
+    <!-- Форма загрузки -->
+    <div class="mb-6">
+        <h3 class="text-xl font-semibold mb-2">Загрузить файл</h3>
+        <p id="upload-error" class="text-red-500 mb-2 hidden"></p>
+        <div class="flex flex-col gap-4">
+            <input id="upload-file" type="file" class="border p-2" accept=".pdf,.doc,.docx">
+            <select id="upload-access" class="border p-2">
+                <option value="admin">Только для администраторов</option>
+                <option value="default">Базовый доступ</option>
+                <option value="pro">Продвинутый доступ</option>
+            </select>
+            <button id="upload-button" class="bg-green-500 text-white p-2 rounded hover:bg-green-600">Загрузить</button>
+        </div>
+    </div>
+
+    <!-- Таблица файлов -->
+    <table class="w-full border-collapse">
+        <thead>
+        <tr class="bg-gray-200">
+            <th class="border p-2">Имя файла</th>
+            <th class="border p-2">Уровень доступа</th>
+            <th class="border p-2">Дата загрузки</th>
+            <th class="border p-2">Действия</th>
+        </tr>
+        </thead>
+        <tbody id="file-table"></tbody>
+    </table>
+    <button id="logout-button" class="mt-4 bg-red-500 text-white p-2 rounded hover:bg-red-600">Выйти</button>
+</div>
+
+<!-- Страница управления пользователями -->
+<div id="users-page" class="container mx-auto p-4 hidden">
+    <h2 class="text-2xl font-bold mb-4">Управление пользователями</h2>
+    <p id="users-error" class="text-red-500 mb-4 hidden"></p>
+
+    <!-- Форма создания пользователя -->
+    <div class="mb-6">
+        <h3 class="text-xl font-semibold mb-2">Создать пользователя</h3>
+        <p id="create-user-error" class="text-red-500 mb-2 hidden"></p>
+        <div class="flex flex-col gap-4">
+            <input id="create-user-login" type="text" class="border p-2" placeholder="Логин" required>
+            <input id="create-user-password" type="password" class="border p-2" placeholder="Пароль" required>
+            <select id="create-user-access" class="border p-2">
+                <option value="admin">Администратор</option>
+                <option value="default">Базовый доступ</option>
+                <option value="pro">Продвинутый доступ</option>
+            </select>
+            <button id="create-user-button" class="bg-green-500 text-white p-2 rounded hover:bg-green-600">Создать</button>
+        </div>
+    </div>
+
+    <!-- Таблица пользователей -->
+    <table class="w-full border-collapse">
+        <thead>
+        <tr class="bg-gray-200">
+            <th class="border p-2">Логин</th>
+            <th class="border p-2">Уровень доступа</th>
+            <th class="border p-2">Действия</th>
+        </tr>
+        </thead>
+        <tbody id="user-table"></tbody>
+    </table>
+    <button id="logout-button-users" class="mt-4 bg-red-500 text-white p-2 rounded hover:bg-red-600">Выйти</button>
+</div>
+
+<script>
+    const API_BASE_URL = 'https://localhost:8000';
+    // Управление токеном и уровнем доступа
+    let token = localStorage.getItem('token') || '';
+    let userAccessLevel = localStorage.getItem('accessLevel') || '';
+
+    // Элементы DOM
+    const navMenu = document.getElementById('nav-menu');
+    const navUsersLi = document.getElementById('nav-users-li');
+    const loginPage = document.getElementById('login-page');
+    const catalogPage = document.getElementById('catalog-page');
+    const usersPage = document.getElementById('users-page');
+    const loginError = document.getElementById('login-error');
+    const catalogError = document.getElementById('catalog-error');
+    const uploadError = document.getElementById('upload-error');
+    const usersError = document.getElementById('users-error');
+    const createUserError = document.getElementById('create-user-error');
+    const fileTable = document.getElementById('file-table');
+    const userTable = document.getElementById('user-table');
+
+    // Показ/скрытие страниц
+    function showPage(page) {
+        loginPage.classList.add('hidden');
+        catalogPage.classList.add('hidden');
+        usersPage.classList.add('hidden');
+        navMenu.classList.add('hidden');
+        if (page !== loginPage) {
+            navMenu.classList.remove('hidden');
+            // Показываем пункт "Пользователи" только для admin
+            navUsersLi.classList.toggle('hidden', userAccessLevel !== 'admin');
+        }
+        page.classList.remove('hidden');
+    }
+
+    // Проверка авторизации
+    function checkAuth() {
+        if (token && userAccessLevel) {
+            showPage(catalogPage);
+            loadFiles();
+        } else {
+            showPage(loginPage);
+        }
+    }
+
+    // Навигация
+    document.getElementById('nav-files').addEventListener('click', () => {
+        showPage(catalogPage);
+        loadFiles();
+    });
+
+    document.getElementById('nav-users').addEventListener('click', () => {
+        if (userAccessLevel === 'admin') {
+            showPage(usersPage);
+            loadUsers();
+        }
+    });
+
+    // Обработка авторизации
+    document.getElementById('login-button').addEventListener('click', async () => {
+        const login = document.getElementById('login-username').value;
+        const password = document.getElementById('login-password').value;
+
+        try {
+            const response = await fetch(`${API_BASE_URL}/auth/login`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ login, password }),
+            });
+
+            if (response.ok) {
+                const data = await response.json();
+                token = data.token;
+                userAccessLevel = data.accessLevel;
+                localStorage.setItem('token', token);
+                localStorage.setItem('accessLevel', userAccessLevel);
+                loginError.classList.add('hidden');
+                showPage(catalogPage);
+                loadFiles();
+            } else {
+                loginError.textContent = 'Неверный логин или пароль';
+                loginError.classList.remove('hidden');
+            }
+        } catch (err) {
+            loginError.textContent = 'Ошибка сети';
+            loginError.classList.remove('hidden');
+        }
+    });
+
+    // Выход
+    document.getElementById('logout-button').addEventListener('click', () => {
+        token = '';
+        userAccessLevel = '';
+        localStorage.removeItem('token');
+        localStorage.removeItem('accessLevel');
+        showPage(loginPage);
+        fileTable.innerHTML = '';
+        userTable.innerHTML = '';
+    });
+
+    document.getElementById('logout-button-users').addEventListener('click', () => {
+        token = '';
+        userAccessLevel = '';
+        localStorage.removeItem('token');
+        localStorage.removeItem('accessLevel');
+        showPage(loginPage);
+        fileTable.innerHTML = '';
+        userTable.innerHTML = '';
+    });
+
+    // Загрузка списка файлов
+    async function loadFiles() {
+        try {
+            const response = await fetch(`${API_BASE_URL}/files`, {
+                headers: { Authorization: `Bearer ${token}` },
+            });
+
+            if (response.ok) {
+                const files = await response.json();
+                renderFiles(files);
+                catalogError.classList.add('hidden');
+            } else {
+                catalogError.textContent = 'Ошибка при загрузке файлов';
+                catalogError.classList.remove('hidden');
+            }
+        } catch (err) {
+            catalogError.textContent = 'Ошибка сети';
+            catalogError.classList.remove('hidden');
+        }
+    }
+
+    // Отрисовка таблицы файлов
+    function renderFiles(files) {
+        fileTable.innerHTML = '';
+        files.forEach(file => {
+            const row = document.createElement('tr');
+            row.innerHTML = `
+                    <td class="border p-2">${file.name}</td>
+                    <td class="border p-2">
+                        <select class="p-1 border rounded" onchange="updateFileAccess('${file.id}', this.value)">
+                            <option value="public" ${file.accessLevel === 'public' ? 'selected' : ''}>Публичный</option>
+                            <option value="restricted" ${file.accessLevel === 'restricted' ? 'selected' : ''}>Ограниченный</option>
+                            <option value="private" ${file.accessLevel === 'private' ? 'selected' : ''}>Приватный</option>
+                        </select>
+                    </td>
+                    <td class="border p-2">${new Date(file.uploadDate).toLocaleString()}</td>
+                    <td class="border p-2">
+                        <button onclick="downloadFile('${file.id}', '${file.name}')" class="bg-blue-500 text-white px-2 py-1 rounded hover:bg-blue-600">Скачать</button>
+                        <button onclick="deleteFile('${file.id}')" class="bg-red-500 text-white px-2 py-1 rounded hover:bg-red-600">Удалить</button>
+                    </td>
+                `;
+            fileTable.appendChild(row);
+        });
+    }
+
+    // Удаление файла
+    async function deleteFile(id) {
+        try {
+            const response = await fetch(`${API_BASE_URL}/files/${id}`, {
+                method: 'DELETE',
+                headers: { Authorization: `Bearer ${token}` },
+            });
+
+            if (response.ok) {
+                loadFiles();
+            } else {
+                catalogError.textContent = 'Ошибка при удалении файла';
+                catalogError.classList.remove('hidden');
+            }
+        } catch (err) {
+            catalogError.textContent = 'Ошибка сети';
+            catalogError.classList.remove('hidden');
+        }
+    }
+
+    // Скачивание файла
+    async function downloadFile(id, filename) {
+        try {
+            const response = await fetch(`${API_BASE_URL}/files/${id}`, {
+                method: 'GET',
+                headers: { Authorization: `Bearer ${token}` },
+            });
+
+            if (response.ok) {
+                const blob = await response.blob();
+                const url = window.URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.href = url;
+                a.download = filename;
+                document.body.appendChild(a);
+                a.click();
+                a.remove();
+                window.URL.revokeObjectURL(url);
+            } else {
+                catalogError.textContent = 'Ошибка при скачивании файла';
+                catalogError.classList.remove('hidden');
+            }
+        } catch (err) {
+            catalogError.textContent = 'Ошибка сети';
+            catalogError.classList.remove('hidden');
+        }
+    }
+
+    // Обновление уровня доступа файла
+    async function updateFileAccess(id, accessLevel) {
+        try {
+            const response = await fetch(`${API_BASE_URL}/files/${id}`, {
+                method: 'PATCH',
+                headers: {
+                    Authorization: `Bearer ${token}`,
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({ accessLevel }),
+            });
+
+            if (response.ok) {
+                loadFiles();
+            } else {
+                catalogError.textContent = 'Ошибка при обновлении уровня доступа';
+                catalogError.classList.remove('hidden');
+            }
+        } catch (err) {
+            catalogError.textContent = 'Ошибка сети';
+            catalogError.classList.remove('hidden');
+        }
+    }
+
+    // Загрузка файла
+    document.getElementById('upload-button').addEventListener('click', async () => {
+        const fileInput = document.getElementById('upload-file');
+        const role = document.getElementById('upload-access').value;
+
+        if (!fileInput.files[0]) {
+            uploadError.textContent = 'Выберите файл';
+            uploadError.classList.remove('hidden');
+            return;
+        }
+
+        const formData = new FormData();
+        formData.append('file', fileInput.files[0]);
+        formData.append('role', role);
+
+        try {
+            const response = await fetch(`${API_BASE_URL}/files/upload/${role}`, {
+                method: 'POST',
+                headers: { Authorization: `Bearer ${token}` },
+                body: formData,
+            });
+
+            if (response.ok) {
+                fileInput.value = '';
+                document.getElementById('upload-access').value = 'public';
+                uploadError.classList.add('hidden');
+                loadFiles();
+            } else {
+                uploadError.textContent = 'Ошибка при загрузке файла';
+                uploadError.classList.remove('hidden');
+            }
+        } catch (err) {
+            uploadError.textContent = 'Ошибка сети';
+            uploadError.classList.remove('hidden');
+        }
+    });
+
+    // Загрузка списка пользователей
+    async function loadUsers() {
+        if (userAccessLevel !== 'admin') return;
+
+        try {
+            const response = await fetch(`${API_BASE_URL}/users`, {
+                headers: { Authorization: `Bearer ${token}` },
+            });
+
+            if (response.ok) {
+                const users = await response.json();
+                renderUsers(users);
+                usersError.classList.add('hidden');
+            } else {
+                usersError.textContent = 'Ошибка при загрузке пользователей';
+                usersError.classList.remove('hidden');
+            }
+        } catch (err) {
+            usersError.textContent = 'Ошибка сети';
+            usersError.classList.remove('hidden');
+        }
+    }
+
+    // Отрисовка таблицы пользователей
+    function renderUsers(users) {
+        userTable.innerHTML = '';
+        users.forEach(user => {
+            const row = document.createElement('tr');
+            row.innerHTML = `
+                    <td class="border p-2">${user.login}</td>
+                    <td class="border p-2">
+                        <select class="p-1 border rounded" onchange="updateUserAccess('${user.id}', this.value)">
+                            <option value="admin" ${user.role === 'admin' ? 'selected' : ''}>Администратор</option>
+                            <option value="editor" ${user.role === 'default' ? 'selected' : ''}>Базовый уровень</option>
+                            <option value="viewer" ${user.role === 'pro' ? 'selected' : ''}>Продвинутый уровень</option>
+                        </select>
+                    </td>
+                    <td class="border p-2">
+                        <button onclick="editUserPassword('${user.id}')" class="bg-blue-500 text-white px-2 py-1 rounded hover:bg-blue-600">Сменить пароль</button>
+                        <button onclick="deleteUser('${user.id}')" class="bg-red-500 text-white px-2 py-1 rounded hover:bg-red-600">Удалить</button>
+                    </td>
+                `;
+            userTable.appendChild(row);
+        });
+    }
+
+    // Создание пользователя
+    document.getElementById('create-user-button').addEventListener('click', async () => {
+        if (userAccessLevel !== 'admin') return;
+
+        const login = document.getElementById('create-user-login').value;
+        const password = document.getElementById('create-user-password').value;
+        const role = document.getElementById('create-user-access').value;
+
+        if (!login || !password) {
+            createUserError.textContent = 'Заполните все поля';
+            createUserError.classList.remove('hidden');
+            return;
+        }
+
+        try {
+            const response = await fetch(`${API_BASE_URL}/users/create`, {
+                method: 'POST',
+                headers: {
+                    Authorization: `Bearer ${token}`,
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({ login, password, role }),
+            });
+
+            if (response.ok) {
+                document.getElementById('create-user-login').value = '';
+                document.getElementById('create-user-password').value = '';
+                document.getElementById('create-user-access').value = 'admin';
+                createUserError.classList.add('hidden');
+                loadUsers();
+            } else {
+                createUserError.textContent = 'Ошибка при создании пользователя';
+                createUserError.classList.remove('hidden');
+            }
+        } catch (err) {
+            createUserError.textContent = 'Ошибка сети';
+            createUserError.classList.remove('hidden');
+        }
+    });
+
+    // Удаление пользователя
+    async function deleteUser(id) {
+        if (userAccessLevel !== 'admin') return;
+
+        try {
+            const response = await fetch(`${API_BASE_URL}/users/${id}`, {
+                method: 'DELETE',
+                headers: { Authorization: `Bearer ${token}` },
+            });
+
+            if (response.ok) {
+                loadUsers();
+            } else {
+                usersError.textContent = 'Ошибка при удалении пользователя';
+                usersError.classList.remove('hidden');
+            }
+        } catch (err) {
+            usersError.textContent = 'Ошибка сети';
+            usersError.classList.remove('hidden');
+        }
+    }
+
+    // Обновление уровня доступа пользователя
+    async function updateUserAccess(id, accessLevel) {
+        if (userAccessLevel !== 'admin') return;
+
+        try {
+            const response = await fetch(`${API_BASE_URL}/users/${id}`, {
+                method: 'PATCH',
+                headers: {
+                    Authorization: `Bearer ${token}`,
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({ accessLevel }),
+            });
+
+            if (response.ok) {
+                loadUsers();
+            } else {
+                usersError.textContent = 'Ошибка при обновлении уровня доступа';
+                usersError.classList.remove('hidden');
+            }
+        } catch (err) {
+            usersError.textContent = 'Ошибка сети';
+            usersError.classList.remove('hidden');
+        }
+    }
+
+    // Смена пароля пользователя
+    async function editUserPassword(id) {
+        if (userAccessLevel !== 'admin') return;
+
+        const newPassword = prompt('Введите новый пароль:');
+        if (!newPassword) {
+            usersError.textContent = 'Пароль не может быть пустым';
+            usersError.classList.remove('hidden');
+            return;
+        }
+
+        try {
+            const response = await fetch(`${API_BASE_URL}/users/${id}`, {
+                method: 'PATCH',
+                headers: {
+                    Authorization: `Bearer ${token}`,
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({ password: newPassword }),
+            });
+
+            if (response.ok) {
+                usersError.classList.add('hidden');
+                loadUsers();
+            } else {
+                usersError.textContent = 'Ошибка при смене пароля';
+                usersError.classList.remove('hidden');
+            }
+        } catch (err) {
+            usersError.textContent = 'Ошибка сети';
+            usersError.classList.remove('hidden');
+        }
+    }
+
+    // Инициализация
+    checkAuth();
+</script>
+</body>
+</html>
