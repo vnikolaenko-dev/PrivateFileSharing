@@ -4,7 +4,7 @@ import com.fasterxml.jackson.annotation.JsonProperty;
 import jakarta.persistence.*;
 import lombok.Data;
 
-@Table(name = "users")
+@Table(name = "file_manager_user")
 @Entity
 @Data
 public class User {
@@ -14,7 +14,7 @@ public class User {
     private long id;
 
     @Column(nullable = false, unique = true)
-    private String login;
+    private String email;
 
     @Column(nullable = false)
     private String password;

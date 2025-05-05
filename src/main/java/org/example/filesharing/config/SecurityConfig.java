@@ -67,8 +67,8 @@ public class SecurityConfig {
         CorsConfiguration configuration = new CorsConfiguration();
         // Разрешенные источники (лучше вынести в конфиг)
         configuration.setAllowedOrigins(List.of(
-                "https://localhost:8000",
-                "http://localhost:8000"
+                "https://localhost:8080",
+                "http://localhost:8080"
         ));
         configuration.setAllowedMethods(List.of("GET", "POST", "PUT", "DELETE", "OPTIONS")); // Разрешенные HTTP методы
         configuration.setAllowedHeaders(List.of("Authorization", "Content-Type", "Accept")); // Разрешенные заголовки

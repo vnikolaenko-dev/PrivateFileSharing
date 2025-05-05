@@ -29,7 +29,6 @@ public class JwtRequestFilter extends OncePerRequestFilter {
     @Value("${jwt.secret}")
     private String secret;
 
-
     /**
      * Основной метод фильтра, вызываемый для каждого HTTP-запроса
      */

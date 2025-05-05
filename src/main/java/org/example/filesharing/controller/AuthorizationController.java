@@ -27,10 +27,10 @@ public class AuthorizationController {
      */
     @PostMapping("/login")
     public JwtResponse login(@RequestBody User user) {
-        User userFromDB = userService.findUserByLogin(user.getLogin());
+        User userFromDB = userService.findUserByEmail(user.getEmail());
         // Проверяем существование пользователя и совпадение паролей
         if (userFromDB != null && crypto.decrypt(userFromDB.getPassword()).equals(String.valueOf(user.getPassword()))) {
-            return new JwtResponse(jwtTokenUtils.generateToken(user.getLogin(), userFromDB.getRole()), userFromDB.getRole());
+            return new JwtResponse(jwtTokenUtils.generateToken(user.getEmail(), userFromDB.getRole()), userFromDB.getRole());
         } else {
             return new JwtResponse(null, null);
         }

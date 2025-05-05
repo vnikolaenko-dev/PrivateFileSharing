@@ -5,7 +5,7 @@ import jakarta.persistence.*;
 import lombok.Data;
 
 @Entity
-@Table(name = "file")
+@Table(name = "file_manager_file")
 @Data
 public class File {
     @Id

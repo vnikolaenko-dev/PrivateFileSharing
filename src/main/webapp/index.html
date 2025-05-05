@@ -6,15 +6,21 @@
     <title>File Catalog</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <style>
-        .hidden { display: none; }
+        .hidden {
+            display: none;
+        }
     </style>
 </head>
 <body class="bg-gray-100">
 <!-- Навигационное меню -->
 <nav id="nav-menu" class="bg-blue-600 text-white p-4 hidden">
     <ul class="flex space-x-4">
-        <li><button id="nav-files" class="hover:underline">Файлы</button></li>
-        <li id="nav-users-li" class="hidden"><button id="nav-users" class="hover:underline">Пользователи</button></li>
+        <li>
+            <button id="nav-files" class="hover:underline">Файлы</button>
+        </li>
+        <li id="nav-users-li" class="hidden">
+            <button id="nav-users" class="hover:underline">Пользователи</button>
+        </li>
     </ul>
 </nav>
 
@@ -24,8 +30,8 @@
         <h2 class="text-2xl font-bold mb-6 text-center">Вход</h2>
         <p id="login-error" class="text-red-500 mb-4 hidden"></p>
         <div class="mb-4">
-            <label class="block text-gray-700">Логин</label>
-            <input id="login-username" type="text" class="w-full p-2 border rounded" required>
+            <label class="block text-gray-700">Почта</label>
+            <input id="login-email" type="text" class="w-full p-2 border rounded" required>
         </div>
         <div class="mb-6">
             <label class="block text-gray-700">Пароль</label>
@@ -80,14 +86,15 @@
         <h3 class="text-xl font-semibold mb-2">Создать пользователя</h3>
         <p id="create-user-error" class="text-red-500 mb-2 hidden"></p>
         <div class="flex flex-col gap-4">
-            <input id="create-user-login" type="text" class="border p-2" placeholder="Логин" required>
+            <input id="create-user-email" type="text" class="border p-2" placeholder="Почта" required>
             <input id="create-user-password" type="password" class="border p-2" placeholder="Пароль" required>
             <select id="create-user-access" class="border p-2">
                 <option value="admin">Администратор</option>
                 <option value="default">Базовый доступ</option>
                 <option value="pro">Продвинутый доступ</option>
             </select>
-            <button id="create-user-button" class="bg-green-500 text-white p-2 rounded hover:bg-green-600">Создать</button>
+            <button id="create-user-button" class="bg-green-500 text-white p-2 rounded hover:bg-green-600">Создать
+            </button>
         </div>
     </div>
 
@@ -106,7 +113,7 @@
 </div>
 
 <script>
-    const API_BASE_URL = 'https://localhost:8000';
+    const API_BASE_URL = 'http://localhost:8080';
     // Управление токеном и уровнем доступа
     let token = localStorage.getItem('token') || '';
     let userAccessLevel = localStorage.getItem('accessLevel') || '';
@@ -164,25 +171,31 @@
 
     // Обработка авторизации
     document.getElementById('login-button').addEventListener('click', async () => {
-        const login = document.getElementById('login-username').value;
+        const email = document.getElementById('login-email').value;
         const password = document.getElementById('login-password').value;
 
         try {
             const response = await fetch(`${API_BASE_URL}/auth/login`, {
                 method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ login, password }),
+                headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify({email, password}),
             });
 
             if (response.ok) {
                 const data = await response.json();
-                token = data.token;
-                userAccessLevel = data.accessLevel;
-                localStorage.setItem('token', token);
-                localStorage.setItem('accessLevel', userAccessLevel);
-                loginError.classList.add('hidden');
-                showPage(catalogPage);
-                loadFiles();
+                if (data.token === null) {
+                    loginError.textContent = 'Неверный логин или пароль';
+                    loginError.classList.remove('hidden');
+
+                } else {
+                    token = data.token;
+                    userAccessLevel = data.accessLevel;
+                    localStorage.setItem('token', token);
+                    localStorage.setItem('accessLevel', userAccessLevel);
+                    loginError.classList.add('hidden');
+                    showPage(catalogPage);
+                    loadFiles();
+                }
             } else {
                 loginError.textContent = 'Неверный логин или пароль';
                 loginError.classList.remove('hidden');
@@ -218,7 +231,7 @@
     async function loadFiles() {
         try {
             const response = await fetch(`${API_BASE_URL}/files`, {
-                headers: { Authorization: `Bearer ${token}` },
+                headers: {Authorization: `Bearer ${token}`},
             });
 
             if (response.ok) {
@@ -264,7 +277,7 @@
         try {
             const response = await fetch(`${API_BASE_URL}/files/${id}`, {
                 method: 'DELETE',
-                headers: { Authorization: `Bearer ${token}` },
+                headers: {Authorization: `Bearer ${token}`},
             });
 
             if (response.ok) {
@@ -284,7 +297,7 @@
         try {
             const response = await fetch(`${API_BASE_URL}/files/${id}`, {
                 method: 'GET',
-                headers: { Authorization: `Bearer ${token}` },
+                headers: {Authorization: `Bearer ${token}`},
             });
 
             if (response.ok) {
@@ -316,7 +329,7 @@
                     Authorization: `Bearer ${token}`,
                     'Content-Type': 'application/json',
                 },
-                body: JSON.stringify({ accessLevel }),
+                body: JSON.stringify({accessLevel}),
             });
 
             if (response.ok) {
@@ -349,7 +362,7 @@
         try {
             const response = await fetch(`${API_BASE_URL}/files/upload/${role}`, {
                 method: 'POST',
-                headers: { Authorization: `Bearer ${token}` },
+                headers: {Authorization: `Bearer ${token}`},
                 body: formData,
             });
 
@@ -374,7 +387,7 @@
 
         try {
             const response = await fetch(`${API_BASE_URL}/users`, {
-                headers: { Authorization: `Bearer ${token}` },
+                headers: {Authorization: `Bearer ${token}`},
             });
 
             if (response.ok) {
@@ -397,7 +410,7 @@
         users.forEach(user => {
             const row = document.createElement('tr');
             row.innerHTML = `
-                    <td class="border p-2">${user.login}</td>
+                    <td class="border p-2">${user.email}</td>
                     <td class="border p-2">
                         <select class="p-1 border rounded" onchange="updateUserAccess('${user.id}', this.value)">
                             <option value="admin" ${user.role === 'admin' ? 'selected' : ''}>Администратор</option>
@@ -418,11 +431,11 @@
     document.getElementById('create-user-button').addEventListener('click', async () => {
         if (userAccessLevel !== 'admin') return;
 
-        const login = document.getElementById('create-user-login').value;
+        const email = document.getElementById('create-user-email').value;
         const password = document.getElementById('create-user-password').value;
         const role = document.getElementById('create-user-access').value;
 
-        if (!login || !password) {
+        if (!email || !password) {
             createUserError.textContent = 'Заполните все поля';
             createUserError.classList.remove('hidden');
             return;
@@ -435,11 +448,11 @@
                     Authorization: `Bearer ${token}`,
                     'Content-Type': 'application/json',
                 },
-                body: JSON.stringify({ login, password, role }),
+                body: JSON.stringify({email, password, role}),
             });
 
             if (response.ok) {
-                document.getElementById('create-user-login').value = '';
+                document.getElementById('create-user-email').value = '';
                 document.getElementById('create-user-password').value = '';
                 document.getElementById('create-user-access').value = 'admin';
                 createUserError.classList.add('hidden');
@@ -461,7 +474,7 @@
         try {
             const response = await fetch(`${API_BASE_URL}/users/${id}`, {
                 method: 'DELETE',
-                headers: { Authorization: `Bearer ${token}` },
+                headers: {Authorization: `Bearer ${token}`},
             });
 
             if (response.ok) {
@@ -487,7 +500,7 @@
                     Authorization: `Bearer ${token}`,
                     'Content-Type': 'application/json',
                 },
-                body: JSON.stringify({ accessLevel }),
+                body: JSON.stringify({accessLevel}),
             });
 
             if (response.ok) {
@@ -520,7 +533,7 @@
                     Authorization: `Bearer ${token}`,
                     'Content-Type': 'application/json',
                 },
-                body: JSON.stringify({ password: newPassword }),
+                body: JSON.stringify({password: newPassword}),
             });
 
             if (response.ok) {
