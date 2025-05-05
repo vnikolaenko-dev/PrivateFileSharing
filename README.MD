@@ -8,9 +8,9 @@
 - **API**: RESTful API с поддержкой CORS.
 - **Безопасность**: JWT-токены, хэширование паролей, ролевая модель доступа.
 
-!["Вход"]("https://github.com/vnikolaenko-dev/PrivateFileSharing/tree/main/screenshots/login.jpg")
-!["Файлы"]("https://github.com/vnikolaenko-dev/PrivateFileSharing/tree/main/screenshots/files.jpg")
-!["Пользователи"]("https://github.com/vnikolaenko-dev/PrivateFileSharing/tree/main/screenshots/users.jpg")
+!["Вход"]("https://github.com/vnikolaenko-dev/PrivateFileSharing/blob/main/screenshots/files.jpg?raw=true")
+!["Файлы"]("https://github.com/vnikolaenko-dev/PrivateFileSharing/blob/main/screenshots/files.jpg?raw=true")
+!["Пользователи"]("https://github.com/vnikolaenko-dev/PrivateFileSharing/blob/main/screenshots/users.jpg?raw=true")
 
 ## API Endpoints
 
