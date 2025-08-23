@@ -1,12 +1,13 @@
 # Private File Sharing
 
-**Private File Sharing** —сервис для управления файлами с авторизацией и гибким контролем доступа. Администраторы могут загружать файлы (PDF, Word и т.д.), назначать уровни доступа (`default`, `pro`, `admin`), а также управлять пользователями (создание, редактирование, удаление) с различными ролями (`admin`, `default`, `pro`). Сервис идеально подходит для организаций, которым нужна надёжная система хранения и разграничения доступа к документам.
+**Private File Sharing** — сервис для управления файлами с авторизацией и гибким контролем доступа. Администраторы могут загружать файлы (PDF, Word и т.д.), назначать уровни доступа (`default`, `pro`, `admin`), а также управлять пользователями (создание, редактирование, удаление) с различными ролями (`admin`, `default`, `pro`). Сервис идеально подходит для организаций, которым нужна надёжная система хранения и разграничения доступа к документам.
 
 ## Технологии
 - **Backend**: Java Spring Boot, Java Spring Security (для авторизации и JWT), Java Spring Data (для работы с базой данных), Spring For Apache Kafka.
 - **Frontend**: HTML, CSS (Tailwind CSS), JavaScript (чистый, без фреймворков).
 - **API**: RESTful API с поддержкой CORS.
 - **Безопасность**: JWT-токены, хэширование паролей, ролевая модель доступа.
+- **Микросервисы**: Kafka.
 
 ![Файлы](https://github.com/vnikolaenko-dev/PrivateFileSharing/raw/main/screenshots/files.jpg)
 ![Пользователи](https://github.com/vnikolaenko-dev/PrivateFileSharing/raw/main/screenshots/users.jpg)
