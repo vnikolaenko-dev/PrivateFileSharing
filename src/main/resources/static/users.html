@@ -1,0 +1,153 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Пользователи</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="bg-gray-100">
+
+<!-- Навигация -->
+<nav class="bg-blue-600 text-white p-4">
+    <ul class="flex space-x-4">
+        <li><a href="files.html" class="hover:underline">Файлы</a></li>
+        <li><a href="users.html" class="hover:underline">Пользователи</a></li>
+        <li><button id="logout-button" class="hover:underline">Выйти</button></li>
+    </ul>
+</nav>
+
+<!-- Страница управления пользователями -->
+<div class="container mx-auto p-4">
+    <h2 class="text-2xl font-bold mb-4">Управление пользователями</h2>
+    <p id="users-error" class="text-red-500 mb-4 hidden"></p>
+
+    <!-- Форма создания пользователя -->
+    <div class="mb-6">
+        <h3 class="text-xl font-semibold mb-2">Создать пользователя</h3>
+        <p id="create-user-error" class="text-red-500 mb-2 hidden"></p>
+        <div class="flex flex-col gap-4">
+            <input id="create-user-email" type="text" class="border p-2" placeholder="Почта">
+            <input id="create-user-password" type="password" class="border p-2" placeholder="Пароль">
+            <select id="create-user-access" class="border p-2">
+                <option value="admin">Администратор</option>
+                <option value="default">Базовый доступ</option>
+                <option value="pro">Продвинутый доступ</option>
+            </select>
+            <button id="create-user-button" class="bg-green-500 text-white p-2 rounded hover:bg-green-600">Создать</button>
+        </div>
+    </div>
+
+    <!-- Таблица пользователей -->
+    <table class="w-full border-collapse">
+        <thead>
+        <tr class="bg-gray-200">
+            <th class="border p-2">Логин</th>
+            <th class="border p-2">Уровень доступа</th>
+            <th class="border p-2">Действия</th>
+        </tr>
+        </thead>
+        <tbody id="user-table"></tbody>
+    </table>
+</div>
+
+<script>
+    const API_BASE_URL = 'http://localhost:8080';
+    let token = localStorage.getItem('token') || '';
+    let userAccessLevel = localStorage.getItem('accessLevel') || '';
+
+    const usersError = document.getElementById('users-error');
+    const createUserError = document.getElementById('create-user-error');
+    const userTable = document.getElementById('user-table');
+
+    if (!token || userAccessLevel !== 'admin') {
+        window.location.href = "index.html";
+    }
+
+    document.getElementById('logout-button').addEventListener('click', () => {
+        localStorage.removeItem('token');
+        localStorage.removeItem('accessLevel');
+        window.location.href = "index.html";
+    });
+
+    async function loadUsers() {
+        const response = await fetch(`${API_BASE_URL}/user/get-all`, {
+            headers: {Authorization: `Bearer ${token}`},
+        });
+        const users = await response.json();
+        renderUsers(users);
+    }
+
+    function renderUsers(users) {
+        userTable.innerHTML = '';
+        users.forEach(user => {
+            const row = document.createElement('tr');
+            row.innerHTML = `
+        <td class="border p-2">${user.email}</td>
+        <td class="border p-2">
+          <select class="p-1 border rounded" onchange="updateUserAccess('${user.id}', this.value)">
+            <option value="admin" ${user.role === 'admin' ? 'selected' : ''}>Администратор</option>
+            <option value="default" ${user.role === 'default' ? 'selected' : ''}>Базовый уровень</option>
+            <option value="pro" ${user.role === 'pro' ? 'selected' : ''}>Продвинутый уровень</option>
+          </select>
+        </td>
+        <td class="border p-2">
+          <button onclick="editUserPassword('${user.email}')" class="bg-blue-500 text-white px-2 py-1 rounded hover:bg-blue-600">Сменить пароль</button>
+          <button onclick="deleteUser('${user.email}')" class="bg-red-500 text-white px-2 py-1 rounded hover:bg-red-600">Удалить</button>
+        </td>
+      `;
+            userTable.appendChild(row);
+        });
+    }
+
+    document.getElementById('create-user-button').addEventListener('click', async () => {
+        const email = document.getElementById('create-user-email').value;
+        const password = document.getElementById('create-user-password').value;
+        const role = document.getElementById('create-user-access').value;
+
+        if (!email || !password) {
+            createUserError.textContent = 'Заполните все поля';
+            createUserError.classList.remove('hidden');
+            return;
+        }
+
+        await fetch(`${API_BASE_URL}/user/create`, {
+            method: 'POST',
+            headers: {Authorization: `Bearer ${token}`,'Content-Type':'application/json'},
+            body: JSON.stringify({email, password, role}),
+        });
+        loadUsers();
+    });
+
+    async function deleteUser(email) {
+        await fetch(`${API_BASE_URL}/user/remove/${email}`, {
+            method: 'DELETE',
+            headers: {Authorization: `Bearer ${token}`},
+        });
+        loadUsers();
+    }
+
+    async function updateUserAccess(id, accessLevel) {
+        await fetch(`${API_BASE_URL}/user/${id}`, {
+            method: 'PATCH',
+            headers: {Authorization: `Bearer ${token}`,'Content-Type':'application/json'},
+            body: JSON.stringify({accessLevel}),
+        });
+        loadUsers();
+    }
+
+    async function editUserPassword(id) {
+        const newPassword = prompt('Введите новый пароль:');
+        if (!newPassword) return;
+        await fetch(`${API_BASE_URL}/user/${id}`, {
+            method: 'PATCH',
+            headers: {Authorization: `Bearer ${token}`,'Content-Type':'application/json'},
+            body: JSON.stringify({password: newPassword}),
+        });
+        loadUsers();
+    }
+
+    loadUsers();
+</script>
+</body>
+</html>

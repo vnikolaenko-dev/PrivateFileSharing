@@ -1,0 +1,178 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Каталог файлов</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="bg-gray-100">
+
+<!-- Навигация -->
+<nav class="bg-blue-600 text-white p-4">
+  <ul class="flex space-x-4">
+    <li><a href="files.html" class="hover:underline">Файлы</a></li>
+    <li id="nav-users-li" class="hidden"><a href="users.html" class="hover:underline">Пользователи</a></li>
+    <li><button id="logout-button" class="hover:underline">Выйти</button></li>
+  </ul>
+</nav>
+
+<!-- Страница каталога файлов -->
+<div class="container mx-auto p-4">
+  <h2 class="text-2xl font-bold mb-4">Каталог файлов</h2>
+  <p id="catalog-error" class="text-red-500 mb-4 hidden"></p>
+
+  <!-- Форма загрузки -->
+  <div class="mb-6">
+    <h3 class="text-xl font-semibold mb-2">Загрузить файл</h3>
+    <p id="upload-error" class="text-red-500 mb-2 hidden"></p>
+    <div class="flex flex-col gap-4">
+      <input id="upload-file" type="file" class="border p-2" accept=".pdf,.doc,.docx">
+      <select id="upload-access" class="border p-2">
+        <option value="admin">Только для администраторов</option>
+        <option value="default">Базовый доступ</option>
+        <option value="pro">Продвинутый доступ</option>
+      </select>
+      <button id="upload-button" class="bg-green-500 text-white p-2 rounded hover:bg-green-600">Загрузить</button>
+    </div>
+  </div>
+
+  <!-- Таблица файлов -->
+  <table class="w-full border-collapse">
+    <thead>
+    <tr class="bg-gray-200">
+      <th class="border p-2">Имя файла</th>
+      <th class="border p-2">Уровень доступа</th>
+      <th class="border p-2">Дата загрузки</th>
+      <th class="border p-2">Действия</th>
+    </tr>
+    </thead>
+    <tbody id="file-table"></tbody>
+  </table>
+</div>
+
+<script>
+  const API_BASE_URL = 'http://localhost:8080';
+  let token = localStorage.getItem('token') || '';
+  let userAccessLevel = localStorage.getItem('accessLevel') || '';
+
+  const catalogError = document.getElementById('catalog-error');
+  const uploadError = document.getElementById('upload-error');
+  const fileTable = document.getElementById('file-table');
+
+  // Показать пункт "Пользователи" если админ
+  if (userAccessLevel === 'admin') {
+    document.getElementById('nav-users-li').classList.remove('hidden');
+  }
+
+  // Если не авторизован → на login
+  if (!token) window.location.href = "index.html";
+
+  // Выход
+  document.getElementById('logout-button').addEventListener('click', () => {
+    localStorage.removeItem('token');
+    localStorage.removeItem('accessLevel');
+    window.location.href = "index.html";
+  });
+
+  async function loadFiles() {
+    try {
+      const response = await fetch(`${API_BASE_URL}/files`, {
+        headers: {Authorization: `Bearer ${token}`},
+      });
+
+      if (response.ok) {
+        const files = await response.json();
+        renderFiles(files);
+        catalogError.classList.add('hidden');
+      } else {
+        catalogError.textContent = 'Ошибка при загрузке файлов';
+        catalogError.classList.remove('hidden');
+      }
+    } catch {
+      catalogError.textContent = 'Ошибка сети';
+      catalogError.classList.remove('hidden');
+    }
+  }
+
+  function renderFiles(files) {
+    fileTable.innerHTML = '';
+    files.forEach(file => {
+      const row = document.createElement('tr');
+      row.innerHTML = `
+        <td class="border p-2">${file.name}</td>
+        <td class="border p-2">
+          <select class="p-1 border rounded" onchange="updateFileAccess('${file.id}', this.value)">
+            <option value="public" ${file.accessLevel === 'public' ? 'selected' : ''}>Публичный</option>
+            <option value="restricted" ${file.accessLevel === 'restricted' ? 'selected' : ''}>Ограниченный</option>
+            <option value="private" ${file.accessLevel === 'private' ? 'selected' : ''}>Приватный</option>
+          </select>
+        </td>
+        <td class="border p-2">${new Date(file.uploadDate).toLocaleString()}</td>
+        <td class="border p-2">
+          <button onclick="downloadFile('${file.id}', '${file.name}')" class="bg-blue-500 text-white px-2 py-1 rounded hover:bg-blue-600">Скачать</button>
+          <button onclick="deleteFile('${file.id}')" class="bg-red-500 text-white px-2 py-1 rounded hover:bg-red-600">Удалить</button>
+        </td>
+      `;
+      fileTable.appendChild(row);
+    });
+  }
+
+  async function deleteFile(id) {
+    await fetch(`${API_BASE_URL}/files/${id}`, {
+      method: 'DELETE',
+      headers: {Authorization: `Bearer ${token}`},
+    });
+    loadFiles();
+  }
+
+  async function downloadFile(id, filename) {
+    const response = await fetch(`${API_BASE_URL}/files/${id}`, {
+      headers: {Authorization: `Bearer ${token}`},
+    });
+    const blob = await response.blob();
+    const url = window.URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = filename;
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+    window.URL.revokeObjectURL(url);
+  }
+
+  async function updateFileAccess(id, accessLevel) {
+    await fetch(`${API_BASE_URL}/files/${id}`, {
+      method: 'PATCH',
+      headers: {Authorization: `Bearer ${token}`,'Content-Type':'application/json'},
+      body: JSON.stringify({accessLevel}),
+    });
+    loadFiles();
+  }
+
+  document.getElementById('upload-button').addEventListener('click', async () => {
+    const fileInput = document.getElementById('upload-file');
+    const role = document.getElementById('upload-access').value;
+
+    if (!fileInput.files[0]) {
+      uploadError.textContent = 'Выберите файл';
+      uploadError.classList.remove('hidden');
+      return;
+    }
+
+    const formData = new FormData();
+    formData.append('file', fileInput.files[0]);
+    formData.append('role', role);
+
+    await fetch(`${API_BASE_URL}/files/upload/${role}`, {
+      method: 'POST',
+      headers: {Authorization: `Bearer ${token}`},
+      body: formData,
+    });
+    loadFiles();
+  });
+
+  loadFiles();
+</script>
+</body>
+</html>
