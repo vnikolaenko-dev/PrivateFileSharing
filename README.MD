@@ -2,7 +2,10 @@
 
 
 ![Private File Sharing](https://github.com/vnikolaenko-dev/PrivateFileSharing/blob/main/screenshots/files.png)
-![Private File Sharing](https://github.com/vnikolaenko-dev/PrivateFileSharing/blob/main/screenshots/users.png)
+<img src="https://github.com/vnikolaenko-dev/PrivateFileSharing/blob/main/screenshots/users.png" 
+     width="600" 
+     height="400" 
+     alt="Private File Sharing">
 
 Надежная, безопасная и масштабируемая платформа для приватного обмена файлами, разработанная для организаций, которым требуется детализированный контроль доступа, управление пользователями и бесшовные уведомления. Построена на основе микросервисной архитектуры для обеспечения высокой доступности, легкого масштабирования и удобной поддержки кода. Будь то работа с конфиденциальными документами или совместными файлами, приложение предоставляет ролевой доступ, аутентификацию через JWT и событийно-ориентированные уведомления.
 
