@@ -54,12 +54,12 @@
 
 ```mermaid
 graph TD
-    A[Фронтенд <br> (HTML/JS/Tailwind)] -->|HTTP-запросы| B[API-шлюз <br> (Spring Cloud Gateway)]
-    B -->|Маршруты /users/*| C[Микросервис пользователей <br> (Spring Boot, Security, Data JPA)]
-    B -->|Маршруты /files/*| D[Микросервис файлов <br> (Spring Boot, Data JPA)]
-    C -->|Отправляет события| E[Kafka-брокер <br> (Apache Kafka)]
-    E -->|Потребляет топики| F[Сервис уведомлений <br> (Spring Boot, Kafka Consumer)]
-    C <-->|Запросы к БД| G[База данных <br> (PostgreSQL)]
+    A[Фронтенд] -->|HTTP-запросы| B[API-шлюз]
+    B -->|Маршруты /users/*| C[Микросервис пользователей]
+    B -->|Маршруты /files/*| D[Микросервис файлов]
+    C -->|Отправляет события| E[Kafka-брокер]
+    E -->|Потребляет топики| F[Сервис уведомлений]
+    C <-->|Запросы к БД| G[База данных]
     D <-->|Запросы к БД| G
 ```
 
